@@ -1,0 +1,28 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# PyCharm
+.idea/
+__pycache__/
+*.pyc
+
+# Database
+*.db
+*.sqlite
+
+# Secrets
+config.py
+.env
+*.env
+
+# Logs
+*.log
+logs/
+
+# Добавим базу данных в .gitignore
+echo "" >> .gitignore
+echo "# Database files" >> .gitignore
+echo "*.db" >> .gitignore
+echo "*.sqlite" >> .gitignore
