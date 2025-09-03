@@ -1,7 +1,13 @@
 import os
+from dotenv import load_dotenv
 
-# Токен бота (замените на свой)
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8374939362:AAE2KNN21V02MuTo4UukLOGhPmuek-40dV0")
+# Токен бота
+
+# Загружаем переменные из .env
+load_dotenv()
+
+# Теперь получаем токен из переменных окружения
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # Настройки базы данных
 DB_NAME = "prices.db"

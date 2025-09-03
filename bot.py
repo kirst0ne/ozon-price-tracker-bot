@@ -58,6 +58,31 @@ async def get_percent(update: Update, context: ContextTypes.DEFAULT_TYPE):
     percent_choice = update.message.text
     article = context.user_data.get('article', 'unknown')
     user_id = update.effective_user.id
+    product_info = get_product_price(article)
+
+    if product_info['status'] != 'success':
+        error_messages = {
+            'blocked': "❌ Ozon временно ограничил доступ. Попробуйте позже",
+            'not_found': f"❌ Товар с артикулом {article} не найден",
+            'error': "❌ Ошибка при получении цены",
+            'mock': "⚠️ Используем демо-цену (режим тестирования)"
+        }
+
+        status = product_info['status']
+        message = error_messages.get(status, "❌ Неизвестная ошибка")
+
+        if status == 'mock':
+            # Для mock режима все равно показываем "цену"
+            message += f"\n💰 Демо-цена: {product_info['price']} руб"
+
+        await update.message.reply_text(
+            f"{message}\n🔗 Ссылка: {product_info['url']}",
+            reply_markup=None
+        )
+
+        # Для mock режима продолжаем работу
+        if status != 'mock':
+            return ConversationHandler.END
 
     if percent_choice == '20%+':
         percent = 20
