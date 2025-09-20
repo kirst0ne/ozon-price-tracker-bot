@@ -55,15 +55,78 @@ def add_user(user_id, username, first_name, last_name):
     conn.close()
 
 
-def add_tracked_product(user_id, article, target_percent):
-    """Добавление товара для отслеживания"""
+def add_tracked_product(user_id, article, target_percent, current_price, original_price):
+    """Добавляет товар для отслеживания с ценами"""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
     cursor.execute('''
-    INSERT INTO tracked_products (user_id, article, target_percent)
-    VALUES (?, ?, ?)
-    ''', (user_id, article, target_percent))
+    INSERT INTO tracked_products (user_id, article, target_percent, current_price, original_price)
+    VALUES (?, ?, ?, ?, ?)
+    ''', (user_id, article, target_percent, current_price, original_price))
 
     conn.commit()
     conn.close()
+    logger.info(f"Added tracked product: {article} for user {user_id}")
+
+
+def update_product_price(article, new_price):
+    """Обновляет текущую цену товара"""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute('''
+    UPDATE tracked_products 
+    SET current_price = ?
+    WHERE article = ? AND is_active = TRUE
+    ''', (new_price, article))
+
+    conn.commit()
+    conn.close()
+    logger.info(f"Updated price for {article}: {new_price}")
+
+
+def get_tracked_products():
+    """Получает все активные отслеживаемые товары"""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute('''
+    SELECT id, user_id, article, target_percent, current_price, original_price
+    FROM tracked_products 
+    WHERE is_active = TRUE
+    ''')
+
+    products = cursor.fetchall()
+    conn.close()
+    return products
+
+
+def check_price_drop(article, new_price):
+    """Проверяет достигнуто ли целевое снижение цены"""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute('''
+    SELECT original_price, target_percent 
+    FROM tracked_products 
+    WHERE article = ? AND is_active = TRUE
+    ''', (article,))
+
+    result = cursor.fetchone()
+    conn.close()
+
+    if result:
+        original_price, target_percent = result
+        if original_price and new_price:
+            # Конвертируем в числа для вычислений
+            original = float(original_price)
+            current = float(new_price)
+
+            # Вычисляем процент снижения
+            price_drop = ((original - current) / original) * 100
+            logger.info(f"Price drop for {article}: {price_drop:.2f}% (target: {target_percent}%)")
+
+            return price_drop >= target_percent
+
+    return False

@@ -85,8 +85,18 @@ async def get_percent(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ConversationHandler.END
 
+    # Извлекаем цену и чистим ее
+    price_text = product_info['price']
+    clean_price = price_text.replace('₽', '').replace(' ', '').strip()
+
     # Добавляем в БД
-    add_tracked_product(user_id, article, percent)
+    add_tracked_product(
+        user_id=user_id,
+        article=article,
+        target_percent=percent,
+        current_price=clean_price,
+        original_price=clean_price
+    )
 
     # Отправляем подтверждение с РЕАЛЬНОЙ ценой
     await update.message.reply_text(
