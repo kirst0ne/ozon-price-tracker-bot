@@ -58,7 +58,7 @@ async def get_article(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def process_product_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Сообщение о начале загрузки
-    loading_message = await update.message.reply_text(
+    await update.message.reply_text(
         "⏳ Ищу товар и его актуальную стоимость, пожалуйста подождите..."
     )
 

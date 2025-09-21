@@ -29,7 +29,8 @@ class OzonParser:
 
             # User-Agent
             options.add_argument(
-                "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36")
 
             # ✅ ПРОСТОЙ запуск
             self.driver = uc.Chrome(options=options)
@@ -80,46 +81,64 @@ class OzonParser:
             print(f"ℹ️ Не нашли всплывающих окон: {e}")
 
     def get_product_price(self, article):
-        """Парсит цену по конкретному классу"""
+        """Парсит цену товара"""
         try:
             url = f"https://www.ozon.ru/product/{article}/"
             print(f"🌐 Парсим товар: {article}")
 
             self.driver.get(url)
-
-            # Сначала принимаем все разрешения
             self.accept_all_permissions()
 
-            # Ждем загрузки страницы
             WebDriverWait(self.driver, 15).until(
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
 
-            # ✅ Ищем ЦЕНУ по КОНКРЕТНОМУ КЛАССУ
-            price_element = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, ".pdp_bf2.tsHeadline500Medium"))
-            )
+            # Список приоритетных селекторов
+            price_selectors = [
+                (".pdp_bf2.tsHeadline500Medium", "Основной селектор"),
+                (".pdp_bf2.tsHeadline600Large", "Альтернативный селектор"),
+            ]
 
-            price = price_element.text.strip()
-            print(f"✅ Цена найдена: {price}")
+            price = None
+            used_selector = None
+
+            for selector, description in price_selectors:
+                try:
+                    # Пробуем найти элемент
+                    element = self.driver.find_element(By.CSS_SELECTOR, selector)
+                    if element.is_displayed():
+                        candidate_price = element.text.strip()
+                        # Проверяем что это похоже на цену (содержит цифры)
+                        if candidate_price and any(c.isdigit() for c in candidate_price):
+                            price = candidate_price
+                            used_selector = description
+                            print(f"✅ Цена найдена через {description}: {price}")
+                            break
+                except:
+                    continue
+
+            if not price:
+                print("❌ Цена не найдена ни одним методом")
+                return {
+                    'price': None,
+                    'url': url,
+                    'article': article,
+                    'status': 'not_found'
+                }
 
             return {
                 'price': price,
                 'url': url,
                 'article': article,
-                'status': 'success'
+                'status': 'success',
+                'selector': used_selector  # Для отладки
             }
 
         except Exception as e:
-            print(f"❌ Ошибка парсинга: {e}")
-
-            # Сохраняем скриншот для анализа
-            self.driver.save_screenshot(f"error_{article}.png")
-            print(f"📸 Скриншот сохранен: error_{article}.png")
-
+            print(f"❌ Общая ошибка парсинга: {e}")
             return {
                 'price': None,
-                'url': url,
+                'url': f"https://www.ozon.ru/product/{article}/",
                 'article': article,
                 'status': 'error',
                 'error': str(e)
