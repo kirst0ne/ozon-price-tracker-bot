@@ -55,7 +55,13 @@ async def get_article(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return PERCENT
 
 
-async def get_percent(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def process_product_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    # Сообщение о начале загрузки
+    loading_message = await update.message.reply_text(
+        "⏳ Ищу товар и его актуальную стоимость, пожалуйста подождите..."
+    )
+
     """Получение процента скидки с парсингом цены"""
     percent_choice = update.message.text
     article = context.user_data.get('article', 'unknown')
@@ -136,7 +142,7 @@ def main():
         entry_points=[CommandHandler('start', start)],
         states={
             ARTICLE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_article)],
-            PERCENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_percent)],
+            PERCENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_product_info)],
         },
         fallbacks=[CommandHandler('cancel', cancel)],
     )
