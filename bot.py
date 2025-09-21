@@ -3,7 +3,7 @@ from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, \
     ConversationHandler
 from config import BOT_TOKEN, MAIN_KEYBOARD
-from database import init_db, add_user, add_tracked_product, user_exists
+from database import init_db, add_user, update_user, add_tracked_product, user_exists
 from ozon_parser import OzonParser
 import atexit
 
@@ -25,7 +25,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Персонализированный обработчик команды /start"""
     user = update.effective_user
 
-    # Проверяем是新用户还是 возвращающийся
+    # Проверяем, что юзер возвращающийся
     is_new_user = not user_exists(user.id)
 
     if is_new_user:
@@ -38,6 +38,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         # Персонализированное приветствие для возвращающегося
+        update_user(user.id, user.username, user.first_name, user.last_name)
         greeting = (
             f"📦 Снова хотите добавить товар, {user.first_name}?\n\n"
             "Пришлите артикул товара (только цифры)"

@@ -55,6 +55,17 @@ def add_user(user_id, username, first_name, last_name):
     conn.close()
 
 
+def update_user(user_id: int, username: str, first_name: str, last_name: str):
+    """Обновляет данные пользователя в БД"""
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE users SET username = ?, first_name = ?, last_name = ? WHERE user_id = ?",
+            (username, first_name, last_name, user_id)
+        )
+        conn.commit()
+
+
 def add_tracked_product(user_id, article, target_percent, current_price, original_price):
     """Добавляет товар для отслеживания с ценами"""
     conn = sqlite3.connect(DB_NAME)
