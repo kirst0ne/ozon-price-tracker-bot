@@ -130,3 +130,15 @@ def check_price_drop(article, new_price):
             return price_drop >= target_percent
 
     return False
+
+
+def user_exists(user_id):
+    """Проверяет существует ли пользователь в БД"""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT 1 FROM users WHERE user_id = ?', (user_id,))
+    exists = cursor.fetchone() is not None
+
+    conn.close()
+    return exists
