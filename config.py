@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from telegram import ReplyKeyboardMarkup
 
 # Токен бота
 
@@ -23,3 +24,17 @@ CHECK_INTERVALS = {
 
 # Логирование
 LOG_LEVEL = "INFO"
+
+# Клавиатура для главного меню
+MAIN_KEYBOARD = ReplyKeyboardMarkup(
+    [['📦 Добавить еще товар']],
+    resize_keyboard=True,
+    one_time_keyboard=False  # Постоянно отображается
+)
+
+# Клавиатура для отмены
+CANCEL_KEYBOARD = ReplyKeyboardMarkup(
+    [['❌ Отменить']],
+    resize_keyboard=True,
+    one_time_keyboard=True
+)

@@ -1,8 +1,7 @@
 import logging
-from telegram import Update, ReplyKeyboardMarkup
+from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
-
-from config import BOT_TOKEN
+from config import BOT_TOKEN, MAIN_KEYBOARD
 from database import init_db, add_user, add_tracked_product
 from ozon_parser import OzonParser
 import atexit
@@ -22,13 +21,14 @@ parser = OzonParser(headless=True)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик команды /start"""
+    """Обработчик команды /start с клавиатурой"""
     user = update.effective_user
     add_user(user.id, user.username, user.first_name, user.last_name)
 
     await update.message.reply_text(
         "👋 Привет! Я бот для отслеживания цен на Ozon!\n\n"
-        "📦 Пришли мне артикул товара (только цифры)"
+        "📦 Пришли мне артикул товара (только цифры)",
+        reply_markup=MAIN_KEYBOARD  # ✅ Показываем клавиатуру
     )
     return ARTICLE
 
@@ -58,9 +58,10 @@ async def get_article(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def process_product_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Сообщение о начале загрузки
-    await update.message.reply_text(
-        "⏳ Ищу товар и его актуальную стоимость, пожалуйста подождите..."
+    loading_message = await update.message.reply_text(
+        "⏳ Ищу товар и его актуальную стоимость, пожалуйста подождите...",
     )
+    reply_markup = ReplyKeyboardRemove()
 
     """Получение процента скидки с парсингом цены"""
     percent_choice = update.message.text
@@ -104,22 +105,41 @@ async def process_product_info(update: Update, context: ContextTypes.DEFAULT_TYP
         original_price=clean_price
     )
 
-    # Отправляем подтверждение с РЕАЛЬНОЙ ценой
+    # После успешного добавления показываем кнопку "Добавить еще товар"
+    await context.bot.edit_message_text(
+        chat_id=update.effective_chat.id,
+        message_id=loading_message.message_id,
+        text=(
+            f"✅ Товар успешно добавлен для отслеживания!\n\n"
+            f"🎯 Отслеживаю товар {article}\n"
+            f"💰 Текущая цена: {product_info['price']}\n"
+            f"📉 Жду снижение на: {percent}%\n"
+            f"🔔 Уведомлю при достижении цели!\n\n"
+            f"🔗 Ссылка: {product_info['url']}"
+        )
+    )
+
+    # ✅ ПОКАЗЫВАЕМ КНОПКУ "Добавить еще товар"
     await update.message.reply_text(
-        f"🎯 Отслеживаю товар {article}\n"
-        f"💰 Текущая цена: {product_info['price']}\n"
-        f"📉 Жду снижение на: {percent}%\n"
-        f"🔔 Уведомлю при достижении цели!\n\n"
-        f"🔗 Ссылка: {product_info['url']}",
-        reply_markup=None
+        "Что хотите сделать дальше?",
+        reply_markup=MAIN_KEYBOARD  # Постоянная клавиатура
     )
 
     return ConversationHandler.END
 
 
+async def add_another_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик кнопки 'Добавить еще товар' - запускает /start"""
+    # Просто перенаправляем на команду start
+    return await start(update, context)
+
+
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отмена диалога"""
-    await update.message.reply_text('❌ Отменено')
+    """Отмена диалога с возвратом к главной клавиатуре"""
+    await update.message.reply_text(
+        '❌ Отменено. Что хотите сделать?',
+        reply_markup=MAIN_KEYBOARD  # ✅ Возвращаем главную клавиатуру
+    )
     return ConversationHandler.END
 
 
@@ -139,7 +159,10 @@ def main():
 
     # Настройка диалога
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
+        entry_points=[
+            CommandHandler('start', start),
+            MessageHandler(filters.Text(['📦 Добавить еще товар']), add_another_product)  # ✅ Обработчик кнопки
+        ],
         states={
             ARTICLE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_article)],
             PERCENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_product_info)],
@@ -147,10 +170,13 @@ def main():
         fallbacks=[CommandHandler('cancel', cancel)],
     )
 
+    # Добавляем обработчик текстовых сообщений для кнопки
+    application.add_handler(MessageHandler(filters.Text(['📦 Добавить еще товар']), add_another_product))
+
     application.add_handler(conv_handler)
     application.add_error_handler(error_handler)
 
-    print("Бот запущен...")
+    print("Бот запущен с интерактивной клавиатурой...")
     application.run_polling()
 
 
