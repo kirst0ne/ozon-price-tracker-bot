@@ -1,4 +1,4 @@
-import undetected_chromedriver as uc
+from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -12,40 +12,28 @@ class OzonParser:
         self.setup_driver()
 
     def setup_driver(self):
-        """Упрощенная настройка драйвера без неподдерживаемых опций"""
         try:
-            options = uc.ChromeOptions()
+            options = webdriver.ChromeOptions()
             if self.headless:
-                options.add_argument("--headless")
+                options.add_argument("--headless=new")
 
-            # ✅ ТОЛЬКО БАЗОВЫЕ НАСТРОЙКИ которые поддерживает undetected-chromedriver
             options.add_argument("--no-sandbox")
             options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--disable-blink-features=AutomationControlled")
-
-            # ✅ Только основные stealth настройки
             options.add_argument("--disable-notifications")
             options.add_argument("--disable-popup-blocking")
+            options.add_argument("--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
 
-            # User-Agent
-            options.add_argument(
-                "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36")
+            # ✅ САМЫЙ ПРОСТОЙ ВАРИАНТ - webdriver_manager сам всё сделает
+            self.driver = webdriver.Chrome(options=options)
 
-            # ✅ ПРОСТОЙ запуск
-            self.driver = uc.Chrome(options=options)
-
-            # ✅ Настройки после запуска
-            self.driver.set_window_size(1920, 1080)
-
-            # Убираем признаки WebDriver
-            self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-
-            print("✅ Драйвер запущен с базовыми настройками!")
+            print("✅ Драйвер запущен!")
 
         except Exception as e:
             print(f"❌ Ошибка инициализации: {e}")
             raise
+
+    # Остальные методы (get_product_price, accept_all_permissions) остаются те же!
 
     def accept_all_permissions(self):
         """Улучшенное принятие разрешений"""
